@@ -1,0 +1,22 @@
+sudo: false
+
+cache:
+  directories:
+    - fixtures/elm-stuff/build-artifacts
+
+language: node_js
+node_js:
+  - "node"
+
+env:
+  matrix:
+    # prepare for testing on multiple elm versions
+    - ELM_VERSION=0.17.1
+
+install:
+  - npm install -g elm@$ELM_VERSION
+  - npm install
+  - cd fixtures && ../node_modules/.bin/elm-package install -y
+
+script:
+  - npm test
