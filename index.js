@@ -80,12 +80,12 @@ const assetTransformer = function(taggerName, localPath) {
   return plugin;
 }
 
-const replaced = Symbol('elmAssetsLoaderReplaced');
+const REPLACED_NODE = Symbol('elmAssetsLoaderReplaced');
 
 const callExpressionVisitor = function(t, taggerName, localPath) {
   const visitor = function(path) {
     // avoid infinite recursion
-    if (path.node[replaced]) {
+    if (path.node[REPLACED_NODE]) {
       return;
     }
 
@@ -127,7 +127,7 @@ const callExpressionVisitor = function(t, taggerName, localPath) {
 
     const requireExpression = t.callExpression(t.Identifier('require'), [argument]);
     const replacement = t.callExpression(path.node.callee, [requireExpression]);
-    replacement[replaced] = true;
+    replacement[REPLACED_NODE] = true;
 
     path.replaceWith(replacement);
   }
