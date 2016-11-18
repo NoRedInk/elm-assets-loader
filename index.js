@@ -37,11 +37,11 @@ const loader = function(source, inputSourceMap) {
 
   if(!(config.hasOwnProperty('module') &&
        config.hasOwnProperty('tagger'))) {
-    throw new Error("Please configure module and tagger to use this loader.");
+    this.emitError("Please configure module and tagger to use this loader.");
   }
 
   if (!DYNAMIC_REQUIRES_VALUES.includes(config.dynamicRequires)) {
-    throw new Error(`Expecting dynamicRequires to be one of
+    this.emitError(`Expecting dynamicRequires to be one of
                     ${DYNAMIC_REQUIRES_VALUES.join(' | ')}.
                     You gave me: ${config.dynamicRequires}`);
   }
@@ -121,14 +121,22 @@ const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequ
       return;
     }
 
-    // don't know what to do with multiple args
+    // check for multiple args.
+    // though this isn't likely to happen in practice, since multiple
+    // argument calls get compiled to something like:
+    //
+    //     A2(_user$project$MultiArg$Asset, 'elm_logo.svg', 'elm_logo.svg');
     if (path.node.arguments.length > 1) {
-      throw new Error("Tagger that tags multiple strings is currently not supported.");
+      loaderContext.emitError("Tagger that tags multiple strings is currently not supported.");
     }
 
-    // just in case: check for zero args
+    // check for zero args.
+    // though this isn't likely to happen in practice, since zero
+    // argument calls mean:
+    //
+    //     var _user$project$NoArg$assetPath = 'star.png';
     if (path.node.arguments.length === 0) {
-      throw new Error("Tagger must tag one string.");
+      loaderContext.emitError("Tagger must tag only one string.");
     }
 
     const argument = path.node.arguments[0];
@@ -177,7 +185,7 @@ const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequ
     if (typeof localPath === 'function') {
       argument.value = localPath(argument.value);
       if (typeof argument.value !== 'string') {
-        throw new TypeError('localPath returned something not a string: ' + argument.value);
+        loaderContext.emitError('localPath returned something not a string: ' + argument.value);
       }
     }
 
