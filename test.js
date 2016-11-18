@@ -40,7 +40,12 @@ const globalConfig = {
   ]
 };
 
-const compile = (config, cb) => {
+const compile = (config) => {
+  return compileWithStats(config)
+    .then(outputAndStats => outputAndStats.output);
+};
+
+const compileWithStats = (config) => {
   const fs = new MemoryFS();
   const compiler = webpack(config);
   compiler.outputFileSystem = fs;
@@ -51,9 +56,9 @@ const compile = (config, cb) => {
       }
       const exitPath = path.join(outputPath, 'main.js');
       const output = fs.readFileSync(exitPath).toString('utf-8');
-      return output;
+      return {output: output, stats: stats.toJson()};
     });
-};
+}
 
 /* finding the tagger in compiled JS code */
 
@@ -158,18 +163,60 @@ test('do not transform tagger that is actually a constant func', async t => {
   t.regex(result, /assetPath\s*=\s*(["'])star.png\1/);
 });
 
-test('do not transform tagger arg not a string literal', async t => {
+/* dynamicRequires */
+
+test('dynamicRequires: default - warn', async t => {
   const config = assign({}, globalConfig, {
     entry: './ComplexCall',
     elmAssetsLoader: {
       module: 'ComplexCall',
-      tagger: 'Asset'
+      tagger: 'ComplexCallAsset'
     }
   });
-  const result = await compile(config);
-  // compiled to an A2 call
-  t.regex(result, /Asset\(A2/);
-  t.regex(result, /(["'])elm_logo\1,\s*\1.svg\1\)/);
+  const result = await compileWithStats(config);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.regex(result.stats.warnings[0], /Dynamic require detected:/);
+});
+
+test('dynamicRequires: ok - be silent', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'ok'
+    }
+  });
+  const result = await compileWithStats(config);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.is(result.stats.warnings.length, 0);
+});
+
+test('dynamicRequires: warn - just warn', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'warn'
+    }
+  });
+  const result = await compileWithStats(config);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.regex(result.stats.warnings[0], /Dynamic require detected:/);
+});
+
+test('dynamicRequires: error - raise when non string literal', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'error'
+    }
+  });
+  t.throws(compile(config), /You're trying to dynamically construct an asset path:.*Asset/);
 });
 
 /* localPath */
@@ -230,4 +277,16 @@ test('require tagger to be configured', async t => {
     }
   });
   t.throws(compile(config), /configure module and tagger/);
+});
+
+test('raise when dynamicRequires is set to an unknown value', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './UserProject',
+    elmAssetsLoader: {
+      module: 'UserProject',
+      tagger: 'Asset',
+      dynamicRequires: 'ignore'
+    }
+  });
+  t.throws(compile(config), /Expecting dynamicRequires to be one of: error | warn | ok. You gave me: ignore/);
 });

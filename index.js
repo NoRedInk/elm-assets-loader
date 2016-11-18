@@ -2,6 +2,16 @@
 
 const loaderUtils = require('loader-utils');
 const babel = require('babel-core');
+const {default: generate} = require('babel-generator');
+
+const DYNAMIC_REQUIRES_OK = Symbol.for("ok");
+const DYNAMIC_REQUIRES_WARN = Symbol.for("warn");
+const DYNAMIC_REQUIRES_ERROR = Symbol.for("error");
+const DYNAMIC_REQUIRES_VALUES = [
+  DYNAMIC_REQUIRES_OK,
+  DYNAMIC_REQUIRES_WARN,
+  DYNAMIC_REQUIRES_ERROR
+].map(s => Symbol.keyFor(s));
 
 const loader = function(source, inputSourceMap) {
   this.cacheable && this.cacheable();
@@ -11,7 +21,8 @@ const loader = function(source, inputSourceMap) {
   const options = this.options[configKey] || {};
 
   const config = {
-    localPath: false
+    localPath: false,
+    dynamicRequires: 'warn'
   };
 
   // options takes precedence over config
@@ -29,12 +40,21 @@ const loader = function(source, inputSourceMap) {
     throw new Error("Please configure module and tagger to use this loader.");
   }
 
+  if (!DYNAMIC_REQUIRES_VALUES.includes(config.dynamicRequires)) {
+    throw new Error(`Expecting dynamicRequires to be one of
+                    ${DYNAMIC_REQUIRES_VALUES.join(' | ')}.
+                    You gave me: ${config.dynamicRequires}`);
+  }
+
   const packageName = config['package'] || 'user/project';
   const taggerName = '_' + [
     packageName.replace(/-/g, '_').replace(/\//g, '$'),
     config.module.replace(/\./g, '_'),
     config.tagger
   ].join('$');
+
+  const dynamicRequires = Symbol.for(config.dynamicRequires);
+
   const localPath = config.localPath;
 
   const webpackRemainingChain = loaderUtils.getRemainingRequest(this).split("!");
@@ -46,13 +66,15 @@ const loader = function(source, inputSourceMap) {
     compact: false
   };
 
-  const result = transform(source, taggerName, localPath, babelOptions);
+  const result = transform(source, this, taggerName, dynamicRequires, localPath, babelOptions);
 
   this.callback(null, result.code, result.map);
 };
 
-const transform = function(source, taggerName, localPath, babelOptions) {
-  babelOptions.plugins = [assetTransformer(taggerName, localPath)];
+const transform = function(source, loaderContext, taggerName, dynamicRequires, localPath, babelOptions) {
+  babelOptions.plugins = [
+    assetTransformer(loaderContext, taggerName, dynamicRequires, localPath)
+  ];
 
   const result = babel.transform(source, babelOptions);
   const code = result.code;
@@ -68,11 +90,11 @@ const transform = function(source, taggerName, localPath, babelOptions) {
   };
 }
 
-const assetTransformer = function(taggerName, localPath) {
+const assetTransformer = function(loaderContext, taggerName, dynamicRequires, localPath) {
   const plugin = function({ types: t }) {
     return {
       visitor: {
-        CallExpression: callExpressionVisitor(t, taggerName, localPath)
+        CallExpression: callExpressionVisitor(t, loaderContext, taggerName, dynamicRequires, localPath)
       }
     }
   };
@@ -82,7 +104,7 @@ const assetTransformer = function(taggerName, localPath) {
 
 const REPLACED_NODE = Symbol('elmAssetsLoaderReplaced');
 
-const callExpressionVisitor = function(t, taggerName, localPath) {
+const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequires, localPath) {
   const visitor = function(path) {
     // avoid infinite recursion
     if (path.node[REPLACED_NODE]) {
@@ -111,8 +133,42 @@ const callExpressionVisitor = function(t, taggerName, localPath) {
 
     const argument = path.node.arguments[0];
 
-    // replace only strings
+    // check for non-string-literals
     if (!(t.isLiteral(argument) && typeof argument.value === 'string')) {
+      const actualCode = generate(path.node).code;
+
+      if (dynamicRequires === DYNAMIC_REQUIRES_ERROR) {
+        loaderContext.emitError("You're trying to dynamically construct an asset path:" + actualCode);
+      } else if (dynamicRequires === DYNAMIC_REQUIRES_WARN) {
+        loaderContext.emitWarning("Dynamic require detected: " + actualCode);
+      }
+
+      /*
+        Trying to webpackify non-string-literals is like opening a can of bad things.
+        Even a simple string concatenation like:
+
+            ComplexCallAsset ("elm_logo" ++ ".svg")
+
+        results in a function call in compiled JavaScript code:
+
+            _user$project$ComplexCall$ComplexCallAsset(
+                A2(_elm_lang$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\'))
+
+        If we wrap this in a call to `require`, webpack will create a
+        [context module][context-module].
+
+            _user$project$ComplexCall$ComplexCallAsset(
+                require(A2(_elm_lang$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\')))
+
+       Which "contains references to all modules in that directory that can be
+       required with a request matching the regular expression." Since webpack
+       can't predict what will come out of the `A2` function call, webpack
+       will try to include all possible modules in the context module. This
+       leads to bloated bundles and lots of warnings from trying to load every
+       file in the directory where the Elm file is in.
+
+          [context-module]: https://webpack.github.io/docs/context.html#context-module
+      */
       return;
     }
 

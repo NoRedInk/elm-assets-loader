@@ -75,6 +75,25 @@ At runtime, the value of `My.Assets.star` will be something like
 - Look for the tagger inside this package. Not needed if the tagger is defined in
   your main application code.
 
+### dynamicRequires (optional)
+
+- Default: "warn"
+- Possible values: "error" | "warn" | "ok"
+- What to do with dynamically constructed asset paths.
+  - "error" - stop processing the file
+  - "warn" - emit a warning
+  - "ok" - this is expected; say nothing about it
+
+  [Dynamic requires][dynamic-requires] is *not* supported. This option simply
+  controls whether or not to raise an error or skip over expressions like:
+
+  ```elm
+  example iconName =
+      AssetPath ("icon-" ++ iconName ++ ".png")
+  ```
+
+  [dynamic-requires]: https://webpack.github.io/docs/context.html#dynamic-requires
+
 ### localPath (optional)
 
 - Function to transform tagged strings to a path that can be resolved by webpack.
