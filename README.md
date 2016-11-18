@@ -77,8 +77,8 @@ At runtime, the value of `My.Assets.star` will be something like
 ### localPath (optional)
 
 - Function to transform tagged strings to a path that can be resolved by webpack.
-  For example, you may want to tag URL paths that are not locally resolvable by themselves,
-  so that your code works without being webpacked.
+  For example, you may want to tag URL paths, which may not be resolvable to a
+  filesystem path, so that your code works without being webpacked.
 
   ```elm
   star = AssetPath "/public/images/star.png"
@@ -92,8 +92,15 @@ At runtime, the value of `My.Assets.star` will be something like
   module.exports = {
     ...
     elmAssetsLoader: {
-      localPath: function(path) {
-        return path.replace(/^\/public\//, "")
+      localPath: function(url) {
+        // transform `url` to a local path that resolves to a file
+        return url.replace(/^\/public\//, "")
+      }
+    },
+    fileLoader: {
+      publicPath: function(path) {
+        // transform `path` to a URL that the web server can understand and serve
+        return "/public/" + url;
       }
     }
   }
