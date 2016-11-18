@@ -72,7 +72,8 @@ At runtime, the value of `My.Assets.star` will be something like
 ### package (optional)
 
 - Example: "NoRedInk/myapp"
-- Look for the tagger inside this package. Not needed if it's defined in your main application code.
+- Look for the tagger inside this package. Not needed if the tagger is defined in
+  your main application code.
 
 ### localPath (optional)
 
