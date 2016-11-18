@@ -176,7 +176,7 @@ test('dynamicRequires: default - warn', async t => {
   const result = await compileWithStats(config);
   t.regex(result.output, /ComplexCallAsset\(A2/);
   t.regex(result.output, /ComplexCallAsset\(A2/);
-  t.regex(result.stats.warnings[0], /Dynamic require detected:/);
+  t.regex(result.stats.warnings[0], /will not be run through webpack.*ComplexCallAsset/);
 });
 
 test('dynamicRequires: ok - be silent', async t => {
@@ -204,7 +204,7 @@ test('dynamicRequires: warn - just warn', async t => {
   });
   const result = await compileWithStats(config);
   t.regex(result.output, /ComplexCallAsset\(A2/);
-  t.regex(result.stats.warnings[0], /Dynamic require detected:/);
+  t.regex(result.stats.warnings[0], /will not be run through webpack.*ComplexCallAsset/);
 });
 
 test('dynamicRequires: error - raise when non string literal', async t => {
@@ -216,7 +216,7 @@ test('dynamicRequires: error - raise when non string literal', async t => {
       dynamicRequires: 'error'
     }
   });
-  t.throws(compile(config), /You're trying to dynamically construct an asset path:.*Asset/);
+  t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
 });
 
 /* localPath */

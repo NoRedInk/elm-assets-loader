@@ -146,9 +146,9 @@ const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequ
       const actualCode = generate(path.node).code;
 
       if (dynamicRequires === DYNAMIC_REQUIRES_ERROR) {
-        loaderContext.emitError("You're trying to dynamically construct an asset path:" + actualCode);
+        loaderContext.emitError("Failing hard to make sure all assets are run through webpack. Dynamically constructed asset path like this is not supported:" + actualCode);
       } else if (dynamicRequires === DYNAMIC_REQUIRES_WARN) {
-        loaderContext.emitWarning("Dynamic require detected: " + actualCode);
+        loaderContext.emitWarning("This asset path, which is dynamically constructed, will not be run through webpack: " + actualCode);
       }
 
       /*
