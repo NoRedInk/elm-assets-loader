@@ -89,18 +89,6 @@ const callExpressionVisitor = function(t, taggerName, localPath) {
       return;
     }
 
-    // don't know what to do with multiple args
-    if (path.node.arguments.length !== 1) {
-      return;
-    }
-
-    const argument = path.node.arguments[0];
-
-    // replace only strings
-    if (!(t.isLiteral(argument) && typeof argument.value === 'string')) {
-      return;
-    }
-
     // calling the tagger we want?
 
     if (!t.isIdentifier(path.node.callee)) {
@@ -108,6 +96,23 @@ const callExpressionVisitor = function(t, taggerName, localPath) {
     }
 
     if (path.node.callee.name !== taggerName) {
+      return;
+    }
+
+    // don't know what to do with multiple args
+    if (path.node.arguments.length > 1) {
+      throw new Error("Tagger that tags multiple strings is currently not supported.");
+    }
+
+    // just in case: check for zero args
+    if (path.node.arguments.length === 0) {
+      throw new Error("Tagger must tag one string.");
+    }
+
+    const argument = path.node.arguments[0];
+
+    // replace only strings
+    if (!(t.isLiteral(argument) && typeof argument.value === 'string')) {
       return;
     }
 

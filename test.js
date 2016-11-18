@@ -55,6 +55,8 @@ const compile = (config, cb) => {
     });
 };
 
+/* finding the tagger in compiled JS code */
+
 test('transform tagger in a package with hyphen', async t => {
   const config = assign({}, globalConfig, {
     entry: './Just',
@@ -104,19 +106,9 @@ test('do not transform tagger in different module', async t => {
   t.regex(result, /Asset\((["'])dont_touch_me.png\1\)/);
 });
 
-test('do not transform tagger that is not a function', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './SimpleString',
-    elmAssetsLoader: {
-      module: 'SimpleString',
-      tagger: 'assetPath'
-    }
-  });
-  const result = await compile(config);
-  t.regex(result, /assetPath = (["'])elm_logo.svg\1/);
-});
+/* argument handling */
 
-test('do not transform tagger with multiple args', async t => {
+test('cannot detect when tagger has multiple args', async t => {
   const config = assign({}, globalConfig, {
     entry: './MultiArg',
     elmAssetsLoader: {
@@ -125,9 +117,45 @@ test('do not transform tagger with multiple args', async t => {
     }
   });
   const result = await compile(config);
-  // compiled to an A2 call
+  // inside an A2 call
   t.regex(result, /Asset,\s*(["'])elm_logo.svg\1,\s*\1elm_logo.svg\1\)/);
-  // TODO: either raise or warn
+});
+
+test('do not fail when something else is called with multiple args ', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './IrrelevantMultiArg',
+    elmAssetsLoader: {
+      module: 'IrrelevantMultiArg',
+      tagger: 'AssetPath'
+    }
+  });
+  const result = await compile(config);
+  // inside an A2 call
+  t.regex(result, /AssetPair,\s*(["'])elm_logo.svg\1,\s*\1elm_logo.svg\1\)/);
+});
+
+test('cannot detect if tagger with multiple values is called with a single arg', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './PartialMultiArg',
+    elmAssetsLoader: {
+      module: 'PartialMultiArg',
+      tagger: 'AssetPair'
+    }
+  });
+  const result = await compile(config);
+  t.regex(result, /AssetPair\(__webpack_require__\(\d+\)\)/);
+});
+
+test('do not transform tagger that is actually a constant func', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './NoArg',
+    elmAssetsLoader: {
+      module: 'NoArg',
+      tagger: 'assetPath'
+    }
+  });
+  const result = await compile(config);
+  t.regex(result, /assetPath\s*=\s*(["'])star.png\1/);
 });
 
 test('do not transform tagger arg not a string literal', async t => {
@@ -143,6 +171,8 @@ test('do not transform tagger arg not a string literal', async t => {
   t.regex(result, /Asset\(A2/);
   t.regex(result, /(["'])elm_logo\1,\s*\1.svg\1\)/);
 });
+
+/* localPath */
 
 test('find module after applying localPath transformation', async t => {
   const config = assign({}, globalConfig, {
@@ -179,6 +209,8 @@ test('raise when localPath does not return a string', async t => {
   });
   t.throws(compile(config), /not a string/);
 });
+
+/* query params */
 
 test('require module to be configured', async t => {
   const config = assign({}, globalConfig, {
