@@ -52,7 +52,7 @@ Tell elm-assets-loader to look for strings tagged with `AssetPath`:
     ]
 ```
 
-At runtime, the value of `My.Assets.star` will be something like
+Then at runtime, the value of `My.Assets.star` will be something like
 `AssetPath "star-038a1253d7a9e4682deb72cd68c3a328.png"`.
 
 
@@ -61,24 +61,24 @@ At runtime, the value of `My.Assets.star` will be something like
 
 ### tagger (required)
 
-- Example: "AssetPath"
-- The "tag" part of a tagged union of shape `<tagger> String` that's used to tag asset paths in your code
+- Example: `"AssetPath"`
+- The "tag" part of a tagged union of shape `<tagger> String` that's used to tag asset paths in your code.
 
 ### module (required)
 
-- Example: "My.Assets"
-- Module in which the tagged union is defined
+- Example: `"My.Assets"`
+- Module in which the tagged union is defined.
 
 ### package (optional)
 
-- Example: "NoRedInk/myapp"
+- Example: `"NoRedInk/myapp"`
 - Look for the tagger inside this package. Not needed if the tagger is defined in
   your main application code.
 
 ### dynamicRequires (optional)
 
-- Default: "warn"
-- Possible values: "error" | "warn" | "ok"
+- Default: `"warn"`
+- Possible values: `"error"` | `"warn"` | `"ok"`
 - What to do with dynamically constructed asset paths.
   - "error" - stop processing the file
   - "warn" - emit a warning
@@ -128,7 +128,7 @@ At runtime, the value of `My.Assets.star` will be something like
 
 ### config (optional)
 
-- Default: "elmAssetsLoader"
+- Default: `"elmAssetsLoader"`
 - Specify the top-level webpack options key under which elm-assets-loader specific options live.
 
 ### Note
@@ -137,7 +137,7 @@ Don't set noParse on .elm files. Otherwise, `require`s won't be processed.
 
 ## Under the hood
 
-Let's walk through what happens to the usage example above when processed by webpack.
+Let's walk through what happens to the example above when processed by webpack.
 
 This Elm code:
 
@@ -145,7 +145,7 @@ This Elm code:
 AssetPath "star.png"
 ```
 
-will be compiled to JS by elm-webpack-loader:
+will be compiled to JavaScript by elm-webpack-loader:
 
 ```js
 _user$project$My_Assets$AssetPath("star.png")
@@ -168,6 +168,6 @@ The module loaded by `__webpack_require__(30)` will look like:
 ```js
 30:
 function(module, exports) {
-   module.exports = "/assets/star-038a1253d7a9e4682deb72cd68c3a328.png";
+   module.exports = "star-038a1253d7a9e4682deb72cd68c3a328.png";
 }
 ```
