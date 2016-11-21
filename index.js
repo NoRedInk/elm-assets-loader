@@ -40,7 +40,8 @@ const loader = function(source, inputSourceMap) {
   const transformerOptions = {
     taggerName: taggerName,
     dynamicRequires: Symbol.for(config.dynamicRequires),
-    localPath: config.localPath
+    localPath: config.localPath,
+    dryRun: config.dryRun
   };
 
   const webpackRemainingChain = loaderUtils.getRemainingRequest(this).split("!");
@@ -173,6 +174,10 @@ const callExpressionVisitor = function(t, loaderContext, options) {
       if (typeof argument.value !== 'string') {
         loaderContext.emitError('localPath returned something not a string: ' + argument.value);
       }
+    }
+
+    if (options.dryRun) {
+      return;
     }
 
     const requireExpression = t.callExpression(t.Identifier('require'), [argument]);

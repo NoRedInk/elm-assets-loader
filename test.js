@@ -219,6 +219,48 @@ test('dynamicRequires: error - raise when non string literal', async t => {
   t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
 });
 
+/* dryRun */
+
+test("dryRun: does not replace with require", async t => {
+  const config = assign({}, globalConfig, {
+    entry: './UserProject',
+    elmAssetsLoader: {
+      module: 'UserProject',
+      tagger: 'Asset',
+      dryRun: true
+    }
+  });
+  const result = await compile(config);
+  t.notRegex(result, /Asset\(__webpack_require__\(\d+\)\)/);
+});
+
+test("dryRun: warns when it should", async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'warn',
+      dryRun: true
+    }
+  });
+  const result = await compileWithStats(config);
+  t.regex(result.stats.warnings[0], /will not be run through webpack.*ComplexCallAsset/);
+});
+
+test("dryRun: raises when it should", async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'error',
+      dryRun: true
+    }
+  });
+  t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
+});
+
 /* localPath */
 
 test('find module after applying localPath transformation', async t => {

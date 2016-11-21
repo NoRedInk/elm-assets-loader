@@ -126,6 +126,17 @@ Then at runtime, the value of `My.Assets.star` will be something like
   }
   ```
 
+### dryRun (optional)
+
+- Default: false
+- Don't actually webpackify asset references, but emit warnings/errors as per
+  the `dynamicRequires` option. Useful in a development environment where you
+  don't want subsequent asset processing to happen, but still want to verify
+  all checks pass.
+- If you're using file-loader or url-loader, `emitFile=false` option might be
+  better since webpack will also verify if the asset exists or not.
+
+
 ### config (optional)
 
 - Default: `"elmAssetsLoader"`
