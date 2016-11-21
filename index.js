@@ -37,9 +37,11 @@ const loader = function(source, inputSourceMap) {
     config.tagger
   ].join('$');
 
-  const dynamicRequires = Symbol.for(config.dynamicRequires);
-
-  const localPath = config.localPath;
+  const transformerOptions = {
+    taggerName: taggerName,
+    dynamicRequires: Symbol.for(config.dynamicRequires),
+    localPath: config.localPath
+  };
 
   const webpackRemainingChain = loaderUtils.getRemainingRequest(this).split("!");
   const filename  = webpackRemainingChain[webpackRemainingChain.length - 1];
@@ -50,14 +52,14 @@ const loader = function(source, inputSourceMap) {
     compact: false
   };
 
-  const result = transform(source, this, taggerName, dynamicRequires, localPath, babelOptions);
+  const result = transform(source, this, transformerOptions, babelOptions);
 
   this.callback(null, result.code, result.map);
 };
 
-const transform = function(source, loaderContext, taggerName, dynamicRequires, localPath, babelOptions) {
+const transform = function(source, loaderContext, transformerOptions, babelOptions) {
   babelOptions.plugins = [
-    assetTransformer(loaderContext, taggerName, dynamicRequires, localPath)
+    assetTransformer(loaderContext, transformerOptions)
   ];
 
   const result = babel.transform(source, babelOptions);
@@ -74,11 +76,11 @@ const transform = function(source, loaderContext, taggerName, dynamicRequires, l
   };
 }
 
-const assetTransformer = function(loaderContext, taggerName, dynamicRequires, localPath) {
+const assetTransformer = function(loaderContext, options) {
   const plugin = function({ types: t }) {
     return {
       visitor: {
-        CallExpression: callExpressionVisitor(t, loaderContext, taggerName, dynamicRequires, localPath)
+        CallExpression: callExpressionVisitor(t, loaderContext, options)
       }
     }
   };
@@ -88,7 +90,7 @@ const assetTransformer = function(loaderContext, taggerName, dynamicRequires, lo
 
 const REPLACED_NODE = Symbol('elmAssetsLoaderReplaced');
 
-const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequires, localPath) {
+const callExpressionVisitor = function(t, loaderContext, options) {
   const visitor = function(path) {
     // avoid infinite recursion
     if (path.node[REPLACED_NODE]) {
@@ -101,7 +103,7 @@ const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequ
       return;
     }
 
-    if (path.node.callee.name !== taggerName) {
+    if (path.node.callee.name !== options.taggerName) {
       return;
     }
 
@@ -129,9 +131,9 @@ const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequ
     if (!(t.isLiteral(argument) && typeof argument.value === 'string')) {
       const actualCode = generate(path.node).code;
 
-      if (dynamicRequires === DYNAMIC_REQUIRES_ERROR) {
+      if (options.dynamicRequires === DYNAMIC_REQUIRES_ERROR) {
         loaderContext.emitError("Failing hard to make sure all assets are run through webpack. Dynamically constructed asset path like this is not supported:" + actualCode);
-      } else if (dynamicRequires === DYNAMIC_REQUIRES_WARN) {
+      } else if (options.dynamicRequires === DYNAMIC_REQUIRES_WARN) {
         loaderContext.emitWarning("This asset path, which is dynamically constructed, will not be run through webpack: " + actualCode);
       }
 
@@ -166,8 +168,8 @@ const callExpressionVisitor = function(t, loaderContext, taggerName, dynamicRequ
 
     // transform argument value to local path if desired
 
-    if (typeof localPath === 'function') {
-      argument.value = localPath(argument.value);
+    if (typeof options.localPath === 'function') {
+      argument.value = options.localPath(argument.value);
       if (typeof argument.value !== 'string') {
         loaderContext.emitError('localPath returned something not a string: ' + argument.value);
       }
