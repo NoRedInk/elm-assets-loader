@@ -16,24 +16,8 @@ const DYNAMIC_REQUIRES_VALUES = [
 const loader = function(source, inputSourceMap) {
   this.cacheable && this.cacheable();
 
-  const query = loaderUtils.parseQuery(this.query);
-  const configKey = query.config || "elmAssetsLoader";
-  const options = this.options[configKey] || {};
-
-  const config = {
-    localPath: false,
-    dynamicRequires: 'warn'
-  };
-
-  // options takes precedence over config
-  Object.keys(options).forEach(function(attr) {
-    config[attr] = options[attr];
-  });
-
-  // query takes precedence over config and options
-  Object.keys(query).forEach(function(attr) {
-    config[attr] = query[attr];
-  });
+  const config = loaderUtils.getLoaderConfig(this, "elmAssetsLoader")
+  config.dynamicRequires = config.dynamicRequires || 'warn';
 
   if(!(config.hasOwnProperty('module') &&
        config.hasOwnProperty('tagger'))) {
