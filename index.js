@@ -94,7 +94,8 @@ const loader = function(source, inputSourceMap) {
     inputSourceMap: inputSourceMap,
     sourceRoot: process.cwd(),
     filename: filename,
-    compact: false
+    compact: false,
+    babelrc: false
   };
 
   const result = transform(source, taggerName, localPath, babelOptions);
