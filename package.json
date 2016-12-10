@@ -1,6 +1,6 @@
 {
   "name": "elm-assets-loader",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "webpack loader for webpackifying asset references in Elm code",
   "main": "index.js",
   "scripts": {
