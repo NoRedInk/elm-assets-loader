@@ -2,8 +2,8 @@ module ComplexCall exposing (..)
 
 
 type Asset
-    = Asset String
+    = ComplexCallAsset String
 
 
 asset =
-    Asset ("elm_logo" ++ ".svg")
+    ComplexCallAsset ("elm_logo" ++ ".svg")

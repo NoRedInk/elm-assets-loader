@@ -52,7 +52,7 @@ Tell elm-assets-loader to look for strings tagged with `AssetPath`:
     ]
 ```
 
-At runtime, the value of `My.Assets.star` will be something like
+Then at runtime, the value of `My.Assets.star` will be something like
 `AssetPath "star-038a1253d7a9e4682deb72cd68c3a328.png"`.
 
 
@@ -61,24 +61,44 @@ At runtime, the value of `My.Assets.star` will be something like
 
 ### tagger (required)
 
-- Example: "AssetPath"
-- The "tag" part of a tagged union of shape `<tagger> String` that's used to tag asset paths in your code
+- Example: `"AssetPath"`
+- The "tag" part of a tagged union of shape `<tagger> String` that's used to tag asset paths in your code.
 
 ### module (required)
 
-- Example: "My.Assets"
-- Module in which the tagged union is defined
+- Example: `"My.Assets"`
+- Module in which the tagged union is defined.
 
 ### package (optional)
 
-- Example: "NoRedInk/myapp"
-- Look for the tagger inside this package. Not needed if it's defined in your main application code.
+- Example: `"NoRedInk/myapp"`
+- Look for the tagger inside this package. Not needed if the tagger is defined in
+  your main application code.
+
+### dynamicRequires (optional)
+
+- Default: `"warn"`
+- Possible values: `"error"` | `"warn"` | `"ok"`
+- What to do with dynamically constructed asset paths.
+  - "error" - stop processing the file
+  - "warn" - emit a warning
+  - "ok" - this is expected; say nothing about it
+
+  [Dynamic requires][dynamic-requires] is *not* supported. This option simply
+  controls whether or not to raise an error or skip over expressions like:
+
+  ```elm
+  example iconName =
+      AssetPath ("icon-" ++ iconName ++ ".png")
+  ```
+
+  [dynamic-requires]: https://webpack.github.io/docs/context.html#dynamic-requires
 
 ### localPath (optional)
 
 - Function to transform tagged strings to a path that can be resolved by webpack.
-  For example, you may want to tag URL paths that are not locally resolvable by themselves,
-  so that your code works without being webpacked.
+  For example, you may want to tag URL paths, which may not be resolvable to a
+  filesystem path, so that your code works without being webpacked.
 
   ```elm
   star = AssetPath "/public/images/star.png"
@@ -92,8 +112,15 @@ At runtime, the value of `My.Assets.star` will be something like
   module.exports = {
     ...
     elmAssetsLoader: {
-      localPath: function(path) {
-        return path.replace(/^\/public\//, "")
+      localPath: function(url) {
+        // transform `url` to a local path that resolves to a file
+        return url.replace(/^\/public\//, "")
+      }
+    },
+    fileLoader: {
+      publicPath: function(path) {
+        // transform `path` to a URL that the web server can understand and serve
+        return "/public/" + url;
       }
     }
   }
@@ -101,7 +128,7 @@ At runtime, the value of `My.Assets.star` will be something like
 
 ### config (optional)
 
-- Default: "elmAssetsLoader"
+- Default: `"elmAssetsLoader"`
 - Specify the top-level webpack options key under which elm-assets-loader specific options live.
 
 ### Note
@@ -110,7 +137,7 @@ Don't set noParse on .elm files. Otherwise, `require`s won't be processed.
 
 ## Under the hood
 
-Let's walk through what happens to the usage example above when processed by webpack.
+Let's walk through what happens to the example above when processed by webpack.
 
 This Elm code:
 
@@ -118,7 +145,7 @@ This Elm code:
 AssetPath "star.png"
 ```
 
-will be compiled to JS by elm-webpack-loader:
+will be compiled to JavaScript by elm-webpack-loader:
 
 ```js
 _user$project$My_Assets$AssetPath("star.png")
@@ -141,6 +168,6 @@ The module loaded by `__webpack_require__(30)` will look like:
 ```js
 30:
 function(module, exports) {
-   module.exports = "/assets/star-038a1253d7a9e4682deb72cd68c3a328.png";
+   module.exports = "star-038a1253d7a9e4682deb72cd68c3a328.png";
 }
 ```

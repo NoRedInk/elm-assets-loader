@@ -1,83 +1,33 @@
 'use strict';
-/*
-Use this loader after elm-webpack-loader to wrap asset paths
-in `require` calls. It's your responsibility to webpackify
-the asset paths referenced.
-
-Implicit assumptions:
-
-- Elm compiles functions in a certain way
-
-Required options:
-
-- package: 'NoRedInk/myapp'
-- module: 'My.Assets'
-- tagger: 'Asset' - a tagged union of shape `<tagger> String`
-
-  example:
-
-    module My.Assets exposing (Asset)
-
-    type Asset = Asset String
-
-Optional:
-
-- localPath: function to transform asset path to something that
-             can be resolved by webpack.
-
-Don't set noParse on .elm files. Otherwise, `require`s won't be
-processed. When processed, the compiled JS file will have
-expressions like:
-
-    _NoRedInk$myapp$My_Assets$Asset(__webpack_require__(30))
-
-Given a loader like:
-
-    {
-        test: /\.(jpe?g|png|gif|svg)$/i,
-        loader: 'file',
-        query: {
-            name: '[name]-[hash].[ext]'
-        }
-    }
-
-The module required by `__webpack_require__(30)` will look like
-
-    30:
-    function(module, exports) {
-
-      module.exports = "/assets/star-b18d2f2b2fe8f78feb9a9e373e12d09c.png";
-
-    }
-*/
 
 const loaderUtils = require('loader-utils');
 const babel = require('babel-core');
+const {default: generate} = require('babel-generator');
+
+const DYNAMIC_REQUIRES_OK = Symbol.for("ok");
+const DYNAMIC_REQUIRES_WARN = Symbol.for("warn");
+const DYNAMIC_REQUIRES_ERROR = Symbol.for("error");
+const DYNAMIC_REQUIRES_VALUES = [
+  DYNAMIC_REQUIRES_OK,
+  DYNAMIC_REQUIRES_WARN,
+  DYNAMIC_REQUIRES_ERROR
+].map(s => Symbol.keyFor(s));
 
 const loader = function(source, inputSourceMap) {
   this.cacheable && this.cacheable();
 
-  const query = loaderUtils.parseQuery(this.query);
-  const configKey = query.config || "elmAssetsLoader";
-  const options = this.options[configKey] || {};
-
-  const config = {
-    localPath: false
-  };
-
-  // options takes precedence over config
-  Object.keys(options).forEach(function(attr) {
-    config[attr] = options[attr];
-  });
-
-  // query takes precedence over config and options
-  Object.keys(query).forEach(function(attr) {
-    config[attr] = query[attr];
-  });
+  const config = loaderUtils.getLoaderConfig(this, "elmAssetsLoader")
+  config.dynamicRequires = config.dynamicRequires || 'warn';
 
   if(!(config.hasOwnProperty('module') &&
        config.hasOwnProperty('tagger'))) {
-    throw new Error("Please configure module and tagger to use this loader.");
+    this.emitError("Please configure module and tagger to use this loader.");
+  }
+
+  if (!DYNAMIC_REQUIRES_VALUES.includes(config.dynamicRequires)) {
+    this.emitError(`Expecting dynamicRequires to be one of
+                    ${DYNAMIC_REQUIRES_VALUES.join(' | ')}.
+                    You gave me: ${config.dynamicRequires}`);
   }
 
   const packageName = config['package'] || 'user/project';
@@ -86,7 +36,12 @@ const loader = function(source, inputSourceMap) {
     config.module.replace(/\./g, '_'),
     config.tagger
   ].join('$');
-  const localPath = config.localPath;
+
+  const transformerOptions = {
+    taggerName: taggerName,
+    dynamicRequires: Symbol.for(config.dynamicRequires),
+    localPath: config.localPath
+  };
 
   const webpackRemainingChain = loaderUtils.getRemainingRequest(this).split("!");
   const filename  = webpackRemainingChain[webpackRemainingChain.length - 1];
@@ -98,13 +53,15 @@ const loader = function(source, inputSourceMap) {
     babelrc: false
   };
 
-  const result = transform(source, taggerName, localPath, babelOptions);
+  const result = transform(source, this, transformerOptions, babelOptions);
 
   this.callback(null, result.code, result.map);
 };
 
-const transform = function(source, taggerName, localPath, babelOptions) {
-  babelOptions.plugins = [assetTransformer(taggerName, localPath)];
+const transform = function(source, loaderContext, transformerOptions, babelOptions) {
+  babelOptions.plugins = [
+    assetTransformer(loaderContext, transformerOptions)
+  ];
 
   const result = babel.transform(source, babelOptions);
   const code = result.code;
@@ -120,11 +77,11 @@ const transform = function(source, taggerName, localPath, babelOptions) {
   };
 }
 
-const assetTransformer = function(taggerName, localPath) {
+const assetTransformer = function(loaderContext, options) {
   const plugin = function({ types: t }) {
     return {
       visitor: {
-        CallExpression: callExpressionVisitor(t, taggerName, localPath)
+        CallExpression: callExpressionVisitor(t, loaderContext, options)
       }
     }
   };
@@ -132,24 +89,12 @@ const assetTransformer = function(taggerName, localPath) {
   return plugin;
 }
 
-const replaced = Symbol('elmAssetsLoaderReplaced');
+const REPLACED_NODE = Symbol('elmAssetsLoaderReplaced');
 
-const callExpressionVisitor = function(t, taggerName, localPath) {
+const callExpressionVisitor = function(t, loaderContext, options) {
   const visitor = function(path) {
     // avoid infinite recursion
-    if (path.node[replaced]) {
-      return;
-    }
-
-    // don't know what to do with multiple args
-    if (path.node.arguments.length !== 1) {
-      return;
-    }
-
-    const argument = path.node.arguments[0];
-
-    // replace only strings
-    if (!(t.isLiteral(argument) && typeof argument.value === 'string')) {
+    if (path.node[REPLACED_NODE]) {
       return;
     }
 
@@ -159,22 +104,81 @@ const callExpressionVisitor = function(t, taggerName, localPath) {
       return;
     }
 
-    if (path.node.callee.name !== taggerName) {
+    if (path.node.callee.name !== options.taggerName) {
+      return;
+    }
+
+    // check for multiple args.
+    // though this isn't likely to happen in practice, since multiple
+    // argument calls get compiled to something like:
+    //
+    //     A2(_user$project$MultiArg$Asset, 'elm_logo.svg', 'elm_logo.svg');
+    if (path.node.arguments.length > 1) {
+      loaderContext.emitError("Tagger that tags multiple strings is currently not supported.");
+    }
+
+    // check for zero args.
+    // though this isn't likely to happen in practice, since zero
+    // argument calls mean:
+    //
+    //     var _user$project$NoArg$assetPath = 'star.png';
+    if (path.node.arguments.length === 0) {
+      loaderContext.emitError("Tagger must tag only one string.");
+    }
+
+    const argument = path.node.arguments[0];
+
+    // check for non-string-literals
+    if (!(t.isLiteral(argument) && typeof argument.value === 'string')) {
+      const actualCode = generate(path.node).code;
+
+      if (options.dynamicRequires === DYNAMIC_REQUIRES_ERROR) {
+        loaderContext.emitError("Failing hard to make sure all assets are run through webpack. Dynamically constructed asset path like this is not supported:" + actualCode);
+      } else if (options.dynamicRequires === DYNAMIC_REQUIRES_WARN) {
+        loaderContext.emitWarning("This asset path, which is dynamically constructed, will not be run through webpack: " + actualCode);
+      }
+
+      /*
+        Trying to webpackify non-string-literals is like opening a can of bad things.
+        Even a simple string concatenation like:
+
+            ComplexCallAsset ("elm_logo" ++ ".svg")
+
+        results in a function call in compiled JavaScript code:
+
+            _user$project$ComplexCall$ComplexCallAsset(
+                A2(_elm_lang$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\'))
+
+        If we wrap this in a call to `require`, webpack will create a
+        [context module][context-module].
+
+            _user$project$ComplexCall$ComplexCallAsset(
+                require(A2(_elm_lang$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\')))
+
+       Which "contains references to all modules in that directory that can be
+       required with a request matching the regular expression." Since webpack
+       can't predict what will come out of the `A2` function call, webpack
+       will try to include all possible modules in the context module. This
+       leads to bloated bundles and lots of warnings from trying to load every
+       file in the directory where the Elm file is in.
+
+          [context-module]: https://webpack.github.io/docs/context.html#context-module
+      */
       return;
     }
 
     // transform argument value to local path if desired
 
-    if (typeof localPath === 'function') {
-      argument.value = localPath(argument.value);
+    if (typeof options.localPath === 'function') {
+      argument.value = options.localPath(argument.value);
       if (typeof argument.value !== 'string') {
-        throw new TypeError('localPath returned something not a string: ' + argument.value);
+        loaderContext.emitError('localPath returned something not a string: ' + argument.value);
       }
     }
 
     const requireExpression = t.callExpression(t.Identifier('require'), [argument]);
     const replacement = t.callExpression(path.node.callee, [requireExpression]);
-    replacement[replaced] = true;
+    replacement[REPLACED_NODE] = true;
 
     path.replaceWith(replacement);
   }

@@ -40,7 +40,12 @@ const globalConfig = {
   ]
 };
 
-const compile = (config, cb) => {
+const compile = (config) => {
+  return compileWithStats(config)
+    .then(outputAndStats => outputAndStats.output);
+};
+
+const compileWithStats = (config) => {
   const fs = new MemoryFS();
   const compiler = webpack(config);
   compiler.outputFileSystem = fs;
@@ -51,9 +56,11 @@ const compile = (config, cb) => {
       }
       const exitPath = path.join(outputPath, 'main.js');
       const output = fs.readFileSync(exitPath).toString('utf-8');
-      return output;
+      return {output: output, stats: stats.toJson()};
     });
-};
+}
+
+/* finding the tagger in compiled JS code */
 
 test('transform tagger in a package with hyphen', async t => {
   const config = assign({}, globalConfig, {
@@ -104,19 +111,9 @@ test('do not transform tagger in different module', async t => {
   t.regex(result, /Asset\((["'])dont_touch_me.png\1\)/);
 });
 
-test('do not transform tagger that is not a function', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './SimpleString',
-    elmAssetsLoader: {
-      module: 'SimpleString',
-      tagger: 'assetPath'
-    }
-  });
-  const result = await compile(config);
-  t.regex(result, /assetPath = (["'])elm_logo.svg\1/);
-});
+/* argument handling */
 
-test('do not transform tagger with multiple args', async t => {
+test('cannot detect when tagger has multiple args', async t => {
   const config = assign({}, globalConfig, {
     entry: './MultiArg',
     elmAssetsLoader: {
@@ -125,24 +122,104 @@ test('do not transform tagger with multiple args', async t => {
     }
   });
   const result = await compile(config);
-  // compiled to an A2 call
+  // inside an A2 call
   t.regex(result, /Asset,\s*(["'])elm_logo.svg\1,\s*\1elm_logo.svg\1\)/);
-  // TODO: either raise or warn
 });
 
-test('do not transform tagger arg not a string literal', async t => {
+test('do not fail when something else is called with multiple args ', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './IrrelevantMultiArg',
+    elmAssetsLoader: {
+      module: 'IrrelevantMultiArg',
+      tagger: 'AssetPath'
+    }
+  });
+  const result = await compile(config);
+  // inside an A2 call
+  t.regex(result, /AssetPair,\s*(["'])elm_logo.svg\1,\s*\1elm_logo.svg\1\)/);
+});
+
+test('cannot detect if tagger with multiple values is called with a single arg', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './PartialMultiArg',
+    elmAssetsLoader: {
+      module: 'PartialMultiArg',
+      tagger: 'AssetPair'
+    }
+  });
+  const result = await compile(config);
+  t.regex(result, /AssetPair\(__webpack_require__\(\d+\)\)/);
+});
+
+test('do not transform tagger that is actually a constant func', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './NoArg',
+    elmAssetsLoader: {
+      module: 'NoArg',
+      tagger: 'assetPath'
+    }
+  });
+  const result = await compile(config);
+  t.regex(result, /assetPath\s*=\s*(["'])star.png\1/);
+});
+
+/* dynamicRequires */
+
+test('dynamicRequires: default - warn', async t => {
   const config = assign({}, globalConfig, {
     entry: './ComplexCall',
     elmAssetsLoader: {
       module: 'ComplexCall',
-      tagger: 'Asset'
+      tagger: 'ComplexCallAsset'
     }
   });
-  const result = await compile(config);
-  // compiled to an A2 call
-  t.regex(result, /Asset\(A2/);
-  t.regex(result, /(["'])elm_logo\1,\s*\1.svg\1\)/);
+  const result = await compileWithStats(config);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.regex(result.stats.warnings[0], /will not be run through webpack.*ComplexCallAsset/);
 });
+
+test('dynamicRequires: ok - be silent', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'ok'
+    }
+  });
+  const result = await compileWithStats(config);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.is(result.stats.warnings.length, 0);
+});
+
+test('dynamicRequires: warn - just warn', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'warn'
+    }
+  });
+  const result = await compileWithStats(config);
+  t.regex(result.output, /ComplexCallAsset\(A2/);
+  t.regex(result.stats.warnings[0], /will not be run through webpack.*ComplexCallAsset/);
+});
+
+test('dynamicRequires: error - raise when non string literal', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './ComplexCall',
+    elmAssetsLoader: {
+      module: 'ComplexCall',
+      tagger: 'ComplexCallAsset',
+      dynamicRequires: 'error'
+    }
+  });
+  t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
+});
+
+/* localPath */
 
 test('find module after applying localPath transformation', async t => {
   const config = assign({}, globalConfig, {
@@ -180,6 +257,8 @@ test('raise when localPath does not return a string', async t => {
   t.throws(compile(config), /not a string/);
 });
 
+/* query params */
+
 test('require module to be configured', async t => {
   const config = assign({}, globalConfig, {
     entry: './UserProject',
@@ -198,4 +277,16 @@ test('require tagger to be configured', async t => {
     }
   });
   t.throws(compile(config), /configure module and tagger/);
+});
+
+test('raise when dynamicRequires is set to an unknown value', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './UserProject',
+    elmAssetsLoader: {
+      module: 'UserProject',
+      tagger: 'Asset',
+      dynamicRequires: 'ignore'
+    }
+  });
+  t.throws(compile(config), /Expecting dynamicRequires to be one of: error | warn | ok. You gave me: ignore/);
 });
