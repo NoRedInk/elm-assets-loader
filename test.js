@@ -207,7 +207,7 @@ test('dynamicRequires: warn - just warn', async t => {
   t.regex(result.stats.warnings[0], /will not be run through webpack.*ComplexCallAsset/);
 });
 
-test('dynamicRequires: error - raise when non string literal', async t => {
+test('dynamicRequires: error - raise when a string concatenation is tagge', async t => {
   const config = assign({}, globalConfig, {
     entry: './ComplexCall',
     elmAssetsLoader: {
@@ -217,6 +217,18 @@ test('dynamicRequires: error - raise when non string literal', async t => {
     }
   });
   t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
+});
+
+test('dynamicRequires: error - raise when a variable is tagged', async t => {
+  const config = assign({}, globalConfig, {
+    entry: './VariableCall',
+    elmAssetsLoader: {
+      module: 'VariableCall',
+      tagger: 'VariableCallAsset',
+      dynamicRequires: 'error'
+    }
+  });
+  t.throws(compile(config), /Failing hard to make sure all assets.*VariableCallAsset/);
 });
 
 /* localPath */
