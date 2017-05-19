@@ -16,7 +16,9 @@ $ npm install --save elm-assets-loader
 
 elm-assets-loader is intended to be chained after [elm-webpack-loader](https://github.com/rtfeldman/elm-webpack-loader),
 and with a loader to load static assets like [file-loader](https://github.com/webpack/file-loader)
-or [url-loader](https://github.com/webpack/url-loader).
+or [url-loader](https://github.com/webpack/url-loader). [elm-asset-path](https://github.com/NoRedInk/elm-asset-path)
+is a companion Elm package that provides types and functions for working with asset paths.
+
 
 Suppose we have a union type for tagging asset paths:
 
@@ -56,6 +58,28 @@ Then at runtime, the value of `My.Assets.star` will be something like
 `AssetPath "star-038a1253d7a9e4682deb72cd68c3a328.png"`.
 
 
+To actually use this string value, define a helper like so:
+
+```elm
+-- say, in My.Assets
+
+path : AssetPath -> String
+path (AssetPath str) =
+    str
+```
+
+Usage example:
+
+```elm
+viewStar : Html Msg
+viewStar =
+    img [ src <| My.Assets.path <| My.Assets.star ] []
+```
+
+[elm-asset-path](https://github.com/NoRedInk/elm-asset-path) includes a reference
+implementation of this `AssetPath` type with support for resolving to a URL on a CDN.
+
+
 ## Options
 
 
@@ -74,12 +98,12 @@ Then at runtime, the value of `My.Assets.star` will be something like
 - Default: `"user/project"`
 - Example: `"NoRedInk/myapp"`
 - Look for the tagger inside this package.
-- If the module you specified above is provided by a 3rd party package, then specify the
+- If the module you're using is provided by a 3rd party package, then specify the
   name of that package.
-- If the module is defined in your main application code, specify the owner/repo
+- If your tagger is defined in your main application code, this is the owner/repo
   portion of the "repository" property of your `elm-package.json`.
-  - ex.`"repository": "https://github.com/user/project.git"` -> package should be `"user/project"`
-  - ex.`"repository": "https://github.com/NoRedInk/myapp.git"` -> package should be `"NoRedInk/myapp"`
+  - ex.`"repository": "https://github.com/user/project.git"` -> package should be user/project
+  - ex.`"repository": "https://github.com/NoRedInk/myapp.git"` -> package should be NoRedInk/myapp
 
 ### dynamicRequires (optional)
 
