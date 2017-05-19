@@ -98,12 +98,12 @@ implementation of this `AssetPath` type with support for resolving to a URL on a
 - Default: `"user/project"`
 - Example: `"NoRedInk/myapp"`
 - Look for the tagger inside this package.
-- If the module you're using is provided by a 3rd party package, then specify the
+- If the module you specified above is provided by a 3rd party package, then specify the
   name of that package.
-- If your tagger is defined in your main application code, this is the owner/repo
+- If the module you specified above is defined in your main application code, then specify the owner/repo
   portion of the "repository" property of your `elm-package.json`.
-  - ex.`"repository": "https://github.com/user/project.git"` -> package should be user/project
-  - ex.`"repository": "https://github.com/NoRedInk/myapp.git"` -> package should be NoRedInk/myapp
+  - ex.`"repository": "https://github.com/user/project.git"` -> package should be `"user/project"`
+  - ex.`"repository": "https://github.com/NoRedInk/myapp.git"` -> package should be `"NoRedInk/myapp"`
 
 ### dynamicRequires (optional)
 
