@@ -216,7 +216,7 @@ test('dynamicRequires: error - raise when a string concatenation is tagge', asyn
     tagger: 'ComplexCallAsset',
     dynamicRequires: 'error'
   });
-  t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
+  await t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
 });
 
 test('dynamicRequires: error - raise when a variable is tagged', async t => {
@@ -227,7 +227,7 @@ test('dynamicRequires: error - raise when a variable is tagged', async t => {
     tagger: 'VariableCallAsset',
     dynamicRequires: 'error'
   });
-  t.throws(compile(config), /Failing hard to make sure all assets.*VariableCallAsset/);
+  await t.throws(compile(config), /Failing hard to make sure all assets.*VariableCallAsset/);
 });
 
 /* localPath */
@@ -251,7 +251,7 @@ test('fail to find module when localPath is not correctly configured', async t =
     module: 'LocalPathOverride',
     tagger: 'Asset'
   });
-  t.throws(compile(config), /Cannot resolve module \'non_sensical.png\'/);
+  await t.throws(compile(config), /Cannot resolve module \'non_sensical.png\'/);
 });
 
 test('raise when localPath does not return a string', async t => {
@@ -262,7 +262,7 @@ test('raise when localPath does not return a string', async t => {
     tagger: 'Asset',
     localPath: s => 42
   });
-  t.throws(compile(config), /not a string/);
+  await t.throws(compile(config), /not a string/);
 });
 
 /* query params */
@@ -273,7 +273,7 @@ test('require module to be configured', async t => {
   }, {
     tagger: 'Asset'
   });
-  t.throws(compile(config), /configure module and tagger/);
+  await t.throws(compile(config), /configure module and tagger/);
 });
 
 test('require tagger to be configured', async t => {
@@ -282,7 +282,7 @@ test('require tagger to be configured', async t => {
   }, {
     module: 'UserProject'
   });
-  t.throws(compile(config), /configure module and tagger/);
+  await t.throws(compile(config), /configure module and tagger/);
 });
 
 test('raise when dynamicRequires is set to an unknown value', async t => {
@@ -293,5 +293,5 @@ test('raise when dynamicRequires is set to an unknown value', async t => {
     tagger: 'Asset',
     dynamicRequires: 'ignore'
   });
-  t.throws(compile(config), /Expecting dynamicRequires to be one of: error | warn | ok. You gave me: ignore/);
+  await t.throws(compile(config), /Expecting dynamicRequires to be one of: error | warn | ok. You gave me: ignore/);
 });
