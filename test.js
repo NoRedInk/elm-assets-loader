@@ -251,7 +251,7 @@ test('fail to find module when localPath is not correctly configured', async t =
     module: 'LocalPathOverride',
     tagger: 'Asset'
   });
-  await t.throws(compile(config), /Cannot resolve module \'non_sensical.png\'/);
+  await t.throws(compile(config), /Can't resolve \'non_sensical.png\'/);
 });
 
 test('raise when localPath does not return a string', async t => {
