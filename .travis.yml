@@ -19,6 +19,7 @@ install:
   - npm install
   - npm install -g npm-install-peers
   - npm-install-peers
+  - cat package-lock.json
   - ./node_modules/.bin/elm-repl --version
   - cd fixtures
     && ../node_modules/.bin/elm-package install -y
