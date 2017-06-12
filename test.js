@@ -10,36 +10,46 @@ const outputPath = path.join(__dirname, 'build');
 const fixturesPath = path.join(__dirname, "fixtures");
 const elmMakePath = path.join(__dirname, 'node_modules/.bin/elm-make');
 
-const globalConfig = {
-  context: fixturesPath,
-  output: {
-    path: outputPath,
-    filename: 'main.js'
-  },
-  resolve: {
-    modules: [
-      fixturesPath
-    ],
-    extensions: ['.js', '.elm']
-  },
-  module: {
-    rules: [
-      {
-        test: /\.elm$/,
-        use: [
-          path.join(__dirname, 'index.js'),
-          'elm-webpack?cwd=' + fixturesPath + '&pathToMake=' + elmMakePath
-        ]
-      },
-      {
-        test: /\.svg$/,
-        use: 'file-loader'
-      }
+const globalConfig = (loaderConfig) => {
+  return {
+    context: fixturesPath,
+    output: {
+      path: outputPath,
+      filename: 'main.js'
+    },
+    resolve: {
+      modules: [
+        fixturesPath
+      ],
+      extensions: ['.js', '.elm']
+    },
+    module: {
+      rules: [
+        {
+          test: /\.elm$/,
+          use: [
+            loaderConfig,
+            'elm-webpack-loader?cwd=' + fixturesPath + '&pathToMake=' + elmMakePath
+          ]
+        },
+        {
+          test: /\.svg$/,
+          use: 'file-loader'
+        }
+      ]
+    },
+    plugins: [
+      new webpack.NoErrorsPlugin()
     ]
-  },
-  plugins: [
-    new webpack.NoErrorsPlugin()
-  ]
+  };
+};
+
+const makeConfig = (extraConfig, loaderOptions) => {
+  const loaderConfig = {
+    loader: path.join(__dirname, 'index.js'),
+    options: loaderOptions
+  };
+  return assign({}, globalConfig(loaderConfig), extraConfig);
 };
 
 const compile = (config) => {
@@ -65,49 +75,45 @@ const compileWithStats = (config) => {
 /* finding the tagger in compiled JS code */
 
 test('transform tagger in a package with hyphen', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './Just',
-    elmAssetsLoader: {
-      package: 'elm-lang/core',
-      module: 'Maybe',
-      tagger: 'Just'
-    }
+  const config = makeConfig({
+    entry: './Just'
+  }, {
+    package: 'elm-lang/core',
+    module: 'Maybe',
+    tagger: 'Just'
   });
   const result = await compile(config);
   t.regex(result, /Just\(__webpack_require__\(\d+\)\)/);
 });
 
 test('transform tagger not in package', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './UserProject',
-    elmAssetsLoader: {
-      module: 'UserProject',
-      tagger: 'Asset'
-    }
+  const config = makeConfig({
+    entry: './UserProject'
+  }, {
+    module: 'UserProject',
+    tagger: 'Asset'
   });
   const result = await compile(config);
   t.regex(result, /Asset\(__webpack_require__\(\d+\)\)/);
 });
 
 test('do not transform tagger in different package', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './MyMaybe',
-    elmAssetsLoader: {
-      module: 'MyMaybe',
-      tagger: 'Just'
-    }
+  const config = makeConfig({
+    entry: './MyMaybe'
+  }, {
+    module: 'MyMaybe',
+    tagger: 'Just'
   });
   const result = await compile(config);
   t.regex(result, /Just\((["'])dont_touch_me.png\1\)/);
 });
 
 test('do not transform tagger in different module', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './MyTag',
-    elmAssetsLoader: {
-      module: 'MyTag',
-      tagger: 'Asset'
-    }
+  const config = makeConfig({
+    entry: './MyTag'
+  }, {
+    module: 'MyTag',
+    tagger: 'Asset'
   });
   const result = await compile(config);
   t.regex(result, /Asset\((["'])dont_touch_me.png\1\)/);
@@ -116,12 +122,11 @@ test('do not transform tagger in different module', async t => {
 /* argument handling */
 
 test('cannot detect when tagger has multiple args', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './MultiArg',
-    elmAssetsLoader: {
-      module: 'MultiArg',
-      tagger: 'Asset'
-    }
+  const config = makeConfig({
+    entry: './MultiArg'
+  }, {
+    module: 'MultiArg',
+    tagger: 'Asset'
   });
   const result = await compile(config);
   // inside an A2 call
@@ -129,12 +134,11 @@ test('cannot detect when tagger has multiple args', async t => {
 });
 
 test('do not fail when something else is called with multiple args ', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './IrrelevantMultiArg',
-    elmAssetsLoader: {
-      module: 'IrrelevantMultiArg',
-      tagger: 'AssetPath'
-    }
+  const config = makeConfig({
+    entry: './IrrelevantMultiArg'
+  }, {
+    module: 'IrrelevantMultiArg',
+    tagger: 'AssetPath'
   });
   const result = await compile(config);
   // inside an A2 call
@@ -142,24 +146,22 @@ test('do not fail when something else is called with multiple args ', async t =>
 });
 
 test('cannot detect if tagger with multiple values is called with a single arg', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './PartialMultiArg',
-    elmAssetsLoader: {
-      module: 'PartialMultiArg',
-      tagger: 'AssetPair'
-    }
+  const config = makeConfig({
+    entry: './PartialMultiArg'
+  }, {
+    module: 'PartialMultiArg',
+    tagger: 'AssetPair'
   });
   const result = await compile(config);
   t.regex(result, /AssetPair\(__webpack_require__\(\d+\)\)/);
 });
 
 test('do not transform tagger that is actually a constant func', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './NoArg',
-    elmAssetsLoader: {
-      module: 'NoArg',
-      tagger: 'assetPath'
-    }
+  const config = makeConfig({
+    entry: './NoArg'
+  }, {
+    module: 'NoArg',
+    tagger: 'assetPath'
   });
   const result = await compile(config);
   t.regex(result, /assetPath\s*=\s*(["'])star.png\1/);
@@ -168,12 +170,11 @@ test('do not transform tagger that is actually a constant func', async t => {
 /* dynamicRequires */
 
 test('dynamicRequires: default - warn', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './ComplexCall',
-    elmAssetsLoader: {
-      module: 'ComplexCall',
-      tagger: 'ComplexCallAsset'
-    }
+  const config = makeConfig({
+    entry: './ComplexCall'
+  }, {
+    module: 'ComplexCall',
+    tagger: 'ComplexCallAsset'
   });
   const result = await compileWithStats(config);
   t.regex(result.output, /ComplexCallAsset\(A2/);
@@ -182,13 +183,12 @@ test('dynamicRequires: default - warn', async t => {
 });
 
 test('dynamicRequires: ok - be silent', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './ComplexCall',
-    elmAssetsLoader: {
-      module: 'ComplexCall',
-      tagger: 'ComplexCallAsset',
-      dynamicRequires: 'ok'
-    }
+  const config = makeConfig({
+    entry: './ComplexCall'
+  }, {
+    module: 'ComplexCall',
+    tagger: 'ComplexCallAsset',
+    dynamicRequires: 'ok'
   });
   const result = await compileWithStats(config);
   t.regex(result.output, /ComplexCallAsset\(A2/);
@@ -196,13 +196,12 @@ test('dynamicRequires: ok - be silent', async t => {
 });
 
 test('dynamicRequires: warn - just warn', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './ComplexCall',
-    elmAssetsLoader: {
-      module: 'ComplexCall',
-      tagger: 'ComplexCallAsset',
-      dynamicRequires: 'warn'
-    }
+  const config = makeConfig({
+    entry: './ComplexCall'
+  }, {
+    module: 'ComplexCall',
+    tagger: 'ComplexCallAsset',
+    dynamicRequires: 'warn'
   });
   const result = await compileWithStats(config);
   t.regex(result.output, /ComplexCallAsset\(A2/);
@@ -210,25 +209,23 @@ test('dynamicRequires: warn - just warn', async t => {
 });
 
 test('dynamicRequires: error - raise when a string concatenation is tagge', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './ComplexCall',
-    elmAssetsLoader: {
-      module: 'ComplexCall',
-      tagger: 'ComplexCallAsset',
-      dynamicRequires: 'error'
-    }
+  const config = makeConfig({
+    entry: './ComplexCall'
+  }, {
+    module: 'ComplexCall',
+    tagger: 'ComplexCallAsset',
+    dynamicRequires: 'error'
   });
   t.throws(compile(config), /Failing hard to make sure all assets.*ComplexCallAsset/);
 });
 
 test('dynamicRequires: error - raise when a variable is tagged', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './VariableCall',
-    elmAssetsLoader: {
-      module: 'VariableCall',
-      tagger: 'VariableCallAsset',
-      dynamicRequires: 'error'
-    }
+  const config = makeConfig({
+    entry: './VariableCall'
+  }, {
+    module: 'VariableCall',
+    tagger: 'VariableCallAsset',
+    dynamicRequires: 'error'
   });
   t.throws(compile(config), /Failing hard to make sure all assets.*VariableCallAsset/);
 });
@@ -236,37 +233,34 @@ test('dynamicRequires: error - raise when a variable is tagged', async t => {
 /* localPath */
 
 test('find module after applying localPath transformation', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './LocalPathOverride',
-    elmAssetsLoader: {
-      module: 'LocalPathOverride',
-      tagger: 'Asset',
-      localPath: s => 'elm_logo.svg'
-    }
+  const config = makeConfig({
+    entry: './LocalPathOverride'
+  }, {
+    module: 'LocalPathOverride',
+    tagger: 'Asset',
+    localPath: s => 'elm_logo.svg'
   });
   const result = await compile(config);
   t.regex(result, /Asset\(__webpack_require__\(\d+\)\)/);
 });
 
 test('fail to find module when localPath is not correctly configured', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './LocalPathOverride',
-    elmAssetsLoader: {
-      module: 'LocalPathOverride',
-      tagger: 'Asset'
-    }
+  const config = makeConfig({
+    entry: './LocalPathOverride'
+  }, {
+    module: 'LocalPathOverride',
+    tagger: 'Asset'
   });
   t.throws(compile(config), /Cannot resolve module \'non_sensical.png\'/);
 });
 
 test('raise when localPath does not return a string', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './LocalPathOverride',
-    elmAssetsLoader: {
-      module: 'LocalPathOverride',
-      tagger: 'Asset',
-      localPath: s => 42
-    }
+  const config = makeConfig({
+    entry: './LocalPathOverride'
+  }, {
+    module: 'LocalPathOverride',
+    tagger: 'Asset',
+    localPath: s => 42
   });
   t.throws(compile(config), /not a string/);
 });
@@ -274,33 +268,30 @@ test('raise when localPath does not return a string', async t => {
 /* query params */
 
 test('require module to be configured', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './UserProject',
-    elmAssetsLoader: {
-      tagger: 'Asset'
-    }
+  const config = makeConfig({
+    entry: './UserProject'
+  }, {
+    tagger: 'Asset'
   });
   t.throws(compile(config), /configure module and tagger/);
 });
 
 test('require tagger to be configured', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './UserProject',
-    elmAssetsLoader: {
-      module: 'UserProject'
-    }
+  const config = makeConfig({
+    entry: './UserProject'
+  }, {
+    module: 'UserProject'
   });
   t.throws(compile(config), /configure module and tagger/);
 });
 
 test('raise when dynamicRequires is set to an unknown value', async t => {
-  const config = assign({}, globalConfig, {
-    entry: './UserProject',
-    elmAssetsLoader: {
-      module: 'UserProject',
-      tagger: 'Asset',
-      dynamicRequires: 'ignore'
-    }
+  const config = makeConfig({
+    entry: './UserProject'
+  }, {
+    module: 'UserProject',
+    tagger: 'Asset',
+    dynamicRequires: 'ignore'
   });
   t.throws(compile(config), /Expecting dynamicRequires to be one of: error | warn | ok. You gave me: ignore/);
 });
