@@ -4,7 +4,7 @@
   "description": "webpack loader for webpackifying asset references in Elm code",
   "main": "index.js",
   "scripts": {
-    "test": "ava"
+    "test": "./node_modules/.bin/ava"
   },
   "repository": {
     "type": "git",
