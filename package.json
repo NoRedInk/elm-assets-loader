@@ -22,8 +22,12 @@
     "url": "https://github.com/NoRedInk/elm-assets-loader/issues"
   },
   "homepage": "https://github.com/NoRedInk/elm-assets-loader#readme",
+  "dependencies": {
+    "loader-utils": "^1.0.2"
+  },
   "peerDependencies": {
-    "babel-core": "^6.18.2"
+    "babel-core": "^6.18.2",
+    "webpack": "^2.0.0"
   },
   "devDependencies": {
     "ava": "^0.16.0",
@@ -31,8 +35,7 @@
     "elm-webpack-loader": "^3.0.6",
     "file-loader": "^0.9.0",
     "memory-fs": "^0.3.0",
-    "pify": "^2.3.0",
-    "webpack": "^1.13.3"
+    "pify": "^2.3.0"
   },
   "files": [
     "LICENSE",
