@@ -19,6 +19,9 @@ before_install:
   - npm install -g npm-install-peers
   - npm-install-peers
 
+after_install:
+  - npm install --only=dev
+
 before_script:
   - cat package-lock.json
   - ./node_modules/.bin/elm-repl --version
