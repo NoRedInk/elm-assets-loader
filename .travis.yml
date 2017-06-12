@@ -15,12 +15,11 @@ env:
     - ELM_VERSION=0.18.0
 
 before_install:
-  - npm install elm@$ELM_VERSION
-  - npm install -g npm-install-peers
-  - npm-install-peers
+  - npm install elm@$ELM_VERSION --no-shrinkwrap
 
 before_script:
-  - npm install --only=dev
+  - npm install -g npm-install-peers
+  - npm-install-peers
   - cat package-lock.json
   - ./node_modules/.bin/elm-repl --version
   - cd fixtures
