@@ -14,11 +14,12 @@ env:
     - ELM_VERSION=0.17.1
     - ELM_VERSION=0.18.0
 
-install:
+before_install:
   - npm install elm@$ELM_VERSION
-  - npm install
   - npm install -g npm-install-peers
   - npm-install-peers
+
+before_script:
   - cat package-lock.json
   - ./node_modules/.bin/elm-repl --version
   - cd fixtures
