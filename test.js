@@ -17,21 +17,23 @@ const globalConfig = {
     filename: 'main.js'
   },
   resolve: {
-    root: fixturesPath,
-    extensions: ['', '.js', '.elm']
+    modules: [
+      fixturesPath
+    ],
+    extensions: ['.js', '.elm']
   },
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.elm$/,
-        loaders: [
+        use: [
           path.join(__dirname, 'index.js'),
           'elm-webpack?cwd=' + fixturesPath + '&pathToMake=' + elmMakePath
         ]
       },
       {
         test: /\.svg$/,
-        loader: 'file-loader'
+        use: 'file-loader'
       }
     ]
   },
