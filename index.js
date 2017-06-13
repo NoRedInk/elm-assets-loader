@@ -16,7 +16,7 @@ const DYNAMIC_REQUIRES_VALUES = [
 const loader = function(source, inputSourceMap) {
   this.cacheable && this.cacheable();
 
-  const config = loaderUtils.getLoaderConfig(this, "elmAssetsLoader")
+  const config = loaderUtils.getOptions(this);
   config.dynamicRequires = config.dynamicRequires || 'warn';
 
   if(!(config.hasOwnProperty('module') &&
