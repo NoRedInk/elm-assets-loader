@@ -35,20 +35,26 @@ star =
 Tell elm-assets-loader to look for strings tagged with `AssetPath`:
 
 ```js
-    loaders: [
+    rules: [
       {
         test: /\.elm$/,
         exclude: [/elm-stuff/, /node_modules/],
-        loaders: [
-          'elm-assets?module=My.Assets&tagger=AssetPath',
-          'elm-webpack'
+        use: [
+          {
+            loader: 'elm-assets-loader',
+            options: {
+              module: 'My.Assets',
+              tagger: 'AssetPath'
+            }
+          },
+          'elm-webpack-loader'
         ]
       },
       {
         test: /\.(jpe?g|png|gif|svg)$/i,
-        loader: 'file',
-        query: {
-            name: '[name]-[hash].[ext]'
+        loader: 'file-loader',
+        options: {
+          name: '[name]-[hash].[ext]'
         }
       }
     ]
