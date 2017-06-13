@@ -221,3 +221,9 @@ function(module, exports) {
    module.exports = "star-038a1253d7a9e4682deb72cd68c3a328.png";
 }
 ```
+
+Which means, effectively, the JavaScript code we saw originally has been rewritten as:
+
+```js
+_user$project$My_Assets$AssetPath("star-038a1253d7a9e4682deb72cd68c3a328.png")
+```
