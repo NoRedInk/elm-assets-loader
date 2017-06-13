@@ -192,7 +192,7 @@ test('dynamicRequires: ok - be silent', async t => {
   });
   const result = await compileWithStats(config);
   t.regex(result.output, /ComplexCallAsset\(A2/);
-  t.is(result.stats.warnings.length, 0);
+  t.deepEqual(result.stats.warnings, []);
 });
 
 test('dynamicRequires: warn - just warn', async t => {
