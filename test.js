@@ -2,6 +2,7 @@ import test from 'ava';
 import path from 'path';
 import assign from "object-assign";
 import MemoryFS from 'memory-fs';
+import semver from 'semver';
 import webpack from 'webpack';
 import pify from 'pify';
 import elmAssetsLoader from './index.js';
@@ -10,7 +11,40 @@ const outputPath = path.join(__dirname, 'build');
 const fixturesPath = path.join(__dirname, "fixtures");
 const elmMakePath = path.join(__dirname, 'node_modules/.bin/elm-make');
 
-const globalConfig = (loaderConfig) => {
+const configForWebpack1 = (loaderOptions) => {
+  return {
+    context: fixturesPath,
+    output: {
+      path: outputPath,
+      filename: 'main.js'
+    },
+    resolve: {
+      root: fixturesPath,
+      extensions: ['', '.js', '.elm']
+    },
+    module: {
+      loaders: [
+        {
+          test: /\.elm$/,
+          loaders: [
+            path.join(__dirname, 'index.js'),
+            'elm-webpack-loader?cwd=' + fixturesPath + '&pathToMake=' + elmMakePath
+          ]
+        },
+        {
+          test: /\.svg$/,
+          loader: 'file-loader'
+        }
+      ]
+    },
+    elmAssetsLoader: loaderOptions,
+    plugins: [
+      new webpack.NoErrorsPlugin()
+    ]
+  };
+};
+
+const configForWebpack2 = (loaderOptions) => {
   return {
     context: fixturesPath,
     output: {
@@ -28,7 +62,10 @@ const globalConfig = (loaderConfig) => {
         {
           test: /\.elm$/,
           use: [
-            loaderConfig,
+            {
+              loader: path.join(__dirname, 'index.js'),
+              options: loaderOptions
+            },
             'elm-webpack-loader?cwd=' + fixturesPath + '&pathToMake=' + elmMakePath
           ]
         },
@@ -45,11 +82,11 @@ const globalConfig = (loaderConfig) => {
 };
 
 const makeConfig = (extraConfig, loaderOptions) => {
-  const loaderConfig = {
-    loader: path.join(__dirname, 'index.js'),
-    options: loaderOptions
-  };
-  return assign({}, globalConfig(loaderConfig), extraConfig);
+  if (semver.lt(process.env.WEBPACK_VERSION, '2.0.0')) {
+    return assign({}, configForWebpack1(loaderOptions), extraConfig);
+  } else {
+    return assign({}, configForWebpack2(loaderOptions), extraConfig);
+  }
 };
 
 const compile = (config) => {
@@ -251,7 +288,7 @@ test('fail to find module when localPath is not correctly configured', async t =
     module: 'LocalPathOverride',
     tagger: 'Asset'
   });
-  await t.throws(compile(config), /Can't resolve \'non_sensical.png\'/);
+  await t.throws(compile(config), /(Can't|Cannot) resolve (module )?\'non_sensical.png\'/);
 });
 
 test('raise when localPath does not return a string', async t => {
