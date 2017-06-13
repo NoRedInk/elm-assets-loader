@@ -11,13 +11,16 @@ node_js:
 
 env:
   matrix:
-    - ELM_VERSION=0.17.1
-    - ELM_VERSION=0.18.0
+    - ELM_VERSION=0.17.1 WEBPACK_VERSION=1.13.3
+    - ELM_VERSION=0.17.1 WEBPACK_VERSION=2.6.1
+    - ELM_VERSION=0.18.0 WEBPACK_VERSION=1.13.3
+    - ELM_VERSION=0.18.0 WEBPACK_VERSION=2.6.1
 
 before_install:
   # Don't create a lock file in order to work around:
   # https://github.com/npm/npm/issues/16987
   - npm install elm@$ELM_VERSION --no-shrinkwrap
+  - npm install webpack@$WEBPACK_VERSION --no-shrinkwrap
 
 before_script:
   - npm install -g npm-install-peers
