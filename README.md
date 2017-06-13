@@ -136,30 +136,44 @@ implementation of this `AssetPath` type with support for resolving to a URL on a
   img [ src (toUrl star) ] []
   ```
 
-  webpack config:
+  webpack config (for webpack 2):
 
   ```js
   module.exports = {
     ...
-    elmAssetsLoader: {
-      localPath: function(url) {
-        // transform `url` to a local path that resolves to a file
-        return url.replace(/^\/public\//, "")
-      }
-    },
-    fileLoader: {
-      publicPath: function(path) {
-        // transform `path` to a URL that the web server can understand and serve
-        return "/public/" + url;
+    module: {
+      rules: [
+        {
+          test: /\.elm$/,
+          use: [
+            {
+              loader: 'elm-assets-loader',
+              options: {
+                localPath: function(url) {
+                  // transform `url` to a local path that resolves to a file
+                  return url.replace(/^\/public\//, "");
+                }
+              }
+            },
+            'elm-webpack-loader?cwd=' + fixturesPath + '&pathToMake=' + elmMakePath
+          ]
+        },
+        {
+          test: /\.svg$/,
+          use: {
+            loader: 'file-loader',
+            options: {
+              publicPath: function(path) {
+                // transform `path` to a URL that the web server can understand and serve
+                return "/public/" + url;
+              }
+            }
+          }
+        }
       }
     }
   }
   ```
-
-### config (optional)
-
-- Default: `"elmAssetsLoader"`
-- Specify the top-level webpack options key under which elm-assets-loader specific options live.
 
 ### Note
 
