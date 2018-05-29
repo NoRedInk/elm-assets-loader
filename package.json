@@ -1,6 +1,6 @@
 {
   "name": "elm-assets-loader",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "webpack loader for webpackifying asset references in Elm code",
   "main": "index.js",
   "scripts": {
@@ -26,8 +26,9 @@
     "loader-utils": "^1.0.2"
   },
   "peerDependencies": {
-    "babel-core": "^6.18.2",
-    "webpack": ">=1.13.3 <3.0.0"
+    "@babel/core": "latest",
+    "@babel/generator": "latest",
+    "webpack": ">=1.13.3 <4.0.0"
   },
   "devDependencies": {
     "ava": "^0.19.0",

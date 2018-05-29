@@ -1,8 +1,8 @@
 'use strict';
 
 const loaderUtils = require('loader-utils');
-const babel = require('babel-core');
-const {default: generate} = require('babel-generator');
+const babel = require('@babel/core');
+const {default: generate} = require('@babel/generator');
 
 const DYNAMIC_REQUIRES_OK = Symbol.for("ok");
 const DYNAMIC_REQUIRES_WARN = Symbol.for("warn");
