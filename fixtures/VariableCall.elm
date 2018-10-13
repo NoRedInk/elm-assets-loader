@@ -1,4 +1,4 @@
-module VariableCall exposing (..)
+module VariableCall exposing (Asset(..), AssetKind(..), asset, main)
 
 
 type Asset
@@ -20,4 +20,13 @@ asset kind =
                 Moon ->
                     "moon.png"
     in
-        VariableCallAsset filename
+    VariableCallAsset filename
+
+
+main : Program () ( Asset, Asset ) msg
+main =
+    Platform.worker
+        { init = \_ -> ( ( asset Star, asset Moon ), Cmd.none )
+        , update = \_ m -> ( m, Cmd.none )
+        , subscriptions = always Sub.none
+        }

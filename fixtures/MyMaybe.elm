@@ -1,4 +1,4 @@
-module MyMaybe exposing (..)
+module MyMaybe exposing (MyMaybe(..), coreJust, main, myJust)
 
 import Maybe
 
@@ -14,3 +14,8 @@ coreJust =
 
 myJust =
     Just "elm_logo.svg"
+
+
+main : Program () ( MyMaybe String, Maybe String ) msg
+main =
+    Platform.worker { init = \_ -> ( ( myJust, coreJust ), Cmd.none ), update = \_ m -> ( m, Cmd.none ), subscriptions = always Sub.none }

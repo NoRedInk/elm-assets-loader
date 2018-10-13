@@ -11,13 +11,9 @@ node_js:
 
 env:
   matrix:
-    - ELM_VERSION=0.17.1 WEBPACK_VERSION=1.13.3
-    - ELM_VERSION=0.17.1 WEBPACK_VERSION=2.6.1
-    - ELM_VERSION=0.17.1 WEBPACK_VERSION=3.11.0
-    - ELM_VERSION=0.17.1 WEBPACK_VERSION=4.6.0
-    - ELM_VERSION=0.18.0 WEBPACK_VERSION=1.13.3
-    - ELM_VERSION=0.18.0 WEBPACK_VERSION=3.11.0
-    - ELM_VERSION=0.18.0 WEBPACK_VERSION=4.6.0
+    - ELM_VERSION=0.19.0 WEBPACK_VERSION=1.13.3
+    - ELM_VERSION=0.19.0 WEBPACK_VERSION=3.11.0
+    - ELM_VERSION=0.19.0 WEBPACK_VERSION=4.6.0
 
 before_install:
   # Don't create a lock file in order to work around:
@@ -28,10 +24,9 @@ before_install:
 before_script:
   - npm install -g npm-install-peers
   - npm-install-peers
-  - ./node_modules/.bin/elm-repl --version
+  - ./node_modules/.bin/elm --version
   - cd fixtures
-    && ../node_modules/.bin/elm-package install -y
-    && ../node_modules/.bin/elm-make *.elm  --yes --output /dev/null
+    && ../node_modules/.bin/elm make *.elm  --output /dev/null
 
 script:
   - npm test
