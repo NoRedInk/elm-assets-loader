@@ -198,19 +198,19 @@ AssetPath "star.png"
 will be compiled to JavaScript by elm-webpack-loader:
 
 ```js
-_user$project$My_Assets$AssetPath("star.png")
+author$project$My_Assets$AssetPath("star.png")
 ```
 
 elm-assets-loader turns this into:
 
 ```js
-_user$project$My_Assets$AssetPath(require("star.png"))
+author$project$My_Assets$AssetPath(require("star.png"))
 ```
 
 webpack parses this `require` call, determines it to be a file-loader module, resulting in:
 
 ```js
-_user$project$My_Assets$AssetPath(__webpack_require__(30))
+author$project$My_Assets$AssetPath(__webpack_require__(30))
 ```
 
 The module loaded by `__webpack_require__(30)` will look like:
@@ -225,7 +225,7 @@ function(module, exports) {
 Which means, effectively, the JavaScript code we saw originally has been rewritten as:
 
 ```js
-_user$project$My_Assets$AssetPath("star-038a1253d7a9e4682deb72cd68c3a328.png")
+author$project$My_Assets$AssetPath("star-038a1253d7a9e4682deb72cd68c3a328.png")
 ```
 
 

@@ -1,4 +1,4 @@
-module IrrelevantMultiArg exposing (..)
+module IrrelevantMultiArg exposing (Asset(..), complexAsset, main, partialAsset, simpleAsset)
 
 
 type Asset
@@ -16,3 +16,12 @@ partialAsset =
 
 simpleAsset =
     AssetPath "elm_logo.svg"
+
+
+main : Program () ( Asset, Asset, Asset ) msg
+main =
+    Platform.worker
+        { init = \_ -> ( ( complexAsset, partialAsset "elm_logo.svg", simpleAsset ), Cmd.none )
+        , update = \_ m -> ( m, Cmd.none )
+        , subscriptions = always Sub.none
+        }

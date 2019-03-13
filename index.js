@@ -30,10 +30,10 @@ const loader = function(source, inputSourceMap) {
                     You gave me: ${config.dynamicRequires}`);
   }
 
-  const packageName = config['package'] || 'user/project';
-  const taggerName = '_' + [
+  const packageName = config['package'] || 'author/project';
+  const taggerName =  [
     packageName.replace(/-/g, '_').replace(/\//g, '$'),
-    config.module.replace(/\./g, '_'),
+    config.module.replace(/\./g, '$'),
     config.tagger
   ].join('$');
 
@@ -112,7 +112,7 @@ const callExpressionVisitor = function(t, loaderContext, options) {
     // though this isn't likely to happen in practice, since multiple
     // argument calls get compiled to something like:
     //
-    //     A2(_user$project$MultiArg$Asset, 'elm_logo.svg', 'elm_logo.svg');
+    //     A2(author$project$MultiArg$Asset, 'elm_logo.svg', 'elm_logo.svg');
     if (path.node.arguments.length > 1) {
       loaderContext.emitError("Tagger that tags multiple strings is currently not supported.");
     }
@@ -121,7 +121,7 @@ const callExpressionVisitor = function(t, loaderContext, options) {
     // though this isn't likely to happen in practice, since zero
     // argument calls mean:
     //
-    //     var _user$project$NoArg$assetPath = 'star.png';
+    //     var author$project$NoArg$assetPath = 'star.png';
     if (path.node.arguments.length === 0) {
       loaderContext.emitError("Tagger must tag only one string.");
     }
@@ -146,14 +146,14 @@ const callExpressionVisitor = function(t, loaderContext, options) {
 
         results in a function call in compiled JavaScript code:
 
-            _user$project$ComplexCall$ComplexCallAsset(
-                A2(_elm_lang$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\'))
+            author$project$ComplexCall$ComplexCallAsset(
+                A2(elm$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\'))
 
         If we wrap this in a call to `require`, webpack will create a
         [context module][context-module].
 
-            _user$project$ComplexCall$ComplexCallAsset(
-                require(A2(_elm_lang$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\')))
+            author$project$ComplexCall$ComplexCallAsset(
+                require(A2(elm$core$Basics_ops[\'++\'], \'elm_logo\', \'.svg\')))
 
        Which "contains references to all modules in that directory that can be
        required with a request matching the regular expression." Since webpack

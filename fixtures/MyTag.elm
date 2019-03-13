@@ -1,4 +1,4 @@
-module MyTag exposing (..)
+module MyTag exposing (Asset(..), main, myAsset, otherTagAsset)
 
 import OtherTag
 
@@ -13,3 +13,8 @@ otherTagAsset =
 
 myAsset =
     Asset "elm_logo.svg"
+
+
+main : Program () ( Asset, OtherTag.Asset ) msg
+main =
+    Platform.worker { init = \_ -> ( ( myAsset, otherTagAsset ), Cmd.none ), update = \_ m -> ( m, Cmd.none ), subscriptions = always Sub.none }
