@@ -1,3 +1,6 @@
+# DEPRECATED
+This package is no longer used internally at NoRedInk. We suggested that community members fork it and take it in the direction that makes sense to them. Maybe that means adding more features. Maybe it means removing things to make it even simpler. Maybe it means rewriting it from scratch. Point is, please search for packages with the same or similar name, and look for an author you trust.
+
 # Elm assets loader [![Version](https://img.shields.io/npm/v/elm-assets-loader.svg)](https://www.npmjs.com/package/elm-webpack-loader) [![Travis build Status](https://travis-ci.org/NoRedInk/elm-assets-loader.svg?branch=master)](http://travis-ci.org/NoRedInk/elm-assets-loader)
 
 [webpack](http://webpack.github.io/docs/) loader for webpackifying asset references
